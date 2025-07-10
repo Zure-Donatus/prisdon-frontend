@@ -6,7 +6,7 @@ import { Route, Routes } from 'react-router-dom';
 import TopBar from './components/TopBar.jsx';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
-import Chatbot from './components/Chatbot.jsx'; // Import the new Chatbot component
+// The Chatbot import has been removed
 
 import HomePage from './pages/HomePage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
@@ -33,7 +33,7 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
-      <Chatbot /> {/* Add the chatbot here so it floats over everything */}
+      {/* The <Chatbot /> component has been removed */}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/my-logo.png" />
+    <link rel="icon" type="image/png" href="/logo192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prisdon Services | Freelance Developer & Designer</title>
   </head>
@@ -11,7 +11,14 @@
     <script type="module" src="/src/main.jsx"></script>
 
     <script type="text/javascript">
-    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    var Tawk_API=Tawk_API||{};
+    // This new part tells the widget to hide on page load,
+    // so we can open it manually from our AI chatbot.
+    Tawk_API.onLoad = function(){
+        Tawk_API.hideWidget();
+    };
+    
+    var Tawk_LoadStart=new Date();
     (function(){
     var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
     s1.async=true;

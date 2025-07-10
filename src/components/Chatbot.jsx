@@ -15,7 +15,7 @@ const Icons = {
     chat: "M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm0 14.25a.75.75 0 01-.75-.75V15a.75.75 0 011.5 0v.75a.75.75 0 01-.75.75zm0-4.5a.75.75 0 01-.75-.75V11a.75.75 0 011.5 0v.25a.75.75 0 01-.75-.75z",
     close: "M6 18L18 6M6 6l12 12",
     send: "M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z",
-    whatsapp: "M19.722 8.384a8.216 8.216 0 00-11.623 11.624L4.5 21l1.002-3.608a8.216 8.216 0 0011.624-11.623zM12.001 2.3a9.716 9.716 0 017.34 3.793 9.716 9.716 0 01-3.792 15.05l-1.372.41-1.03 3.714-3.715-1.03-.41-1.37A9.716 9.716 0 012.3 12a9.664 9.664 0 013.792-7.34A9.664 9.664 0 0112.002 2.3zm0 4.39a.75.75 0 00-.75.75v3.61a.75.75 0 00.75.75h2.54a.75.75 0 000-1.5h-1.79V7.44a.75.75 0 00-.75-.75z",
+    liveChat: "M20.25 3.75v12A2.25 2.25 0 0118 18H6.75a2.25 2.25 0 01-2.25-2.25V3.75m15.75 0H3.75A2.25 2.25 0 001.5 6v9.75A2.25 2.25 0 003.75 18H6.75a.75.75 0 00.75-.75V12a3 3 0 013-3h3.75a.75.75 0 00.75-.75V3.75z",
 };
 
 export default function Chatbot() {
@@ -24,36 +24,22 @@ export default function Chatbot() {
     const [userInput, setUserInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [siteContext, setSiteContext] = useState('');
-    const [contactInfo, setContactInfo] = useState(null);
 
     const chatContainerRef = useRef(null);
 
-    // This logic is NEW. It now fetches the latest data EVERY time the chat is opened.
     useEffect(() => {
         if (isOpen) {
             const fetchAllData = async () => {
-                // The query is NEW. It now includes testimonials and team members.
-                const query = `{
-                    "projects": *[_type == "project"], 
-                    "services": *[_type == "service"], 
-                    "about": *[_type == "aboutPage"][0], 
-                    "settings": *[_type == "siteSettings"][0],
-                    "testimonials": *[_type == "testimonial"],
-                    "teamMembers": *[_type == "teamMember"]
-                }`;
-                
+                const query = `{"projects": *[_type == "project"], "services": *[_type == "service"], "about": *[_type == "aboutPage"][0], "settings": *[_type == "siteSettings"][0], "testimonials": *[_type == "testimonial"], "teamMembers": *[_type == "teamMember"]}`;
                 const data = await sanityClient.fetch(query);
                 const contextString = `This is all the data from the portfolio website: ${JSON.stringify(data)}`;
-                
                 setSiteContext(contextString);
-                setContactInfo(data.settings); 
                 setMessages([{ role: 'model', text: "Hello! I'm a helpful assistant. How can I help you learn about Prisdon Services?" }]);
             };
             fetchAllData();
         }
-    }, [isOpen]); // This effect now runs whenever 'isOpen' changes to true.
+    }, [isOpen]);
 
-    // Auto-scroll to the bottom when new messages are added
     useEffect(() => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -66,11 +52,10 @@ export default function Chatbot() {
 
         const newMessages = [...messages, { role: 'user', text: userInput }];
         setMessages(newMessages);
-        const currentInput = userInput;
         setUserInput('');
         setIsLoading(true);
 
-        const prompt = `You are a helpful and professional assistant for Donatus Zure's freelance portfolio website, called Prisdon Services. Your name is 'Pris'. Answer questions concisely based ONLY on the context provided below. Do not make up information. If the answer is not in the context, you MUST respond with the exact phrase: "I do not have enough information to answer that question." \n\nCONTEXT: ${siteContext}\n\nUSER'S QUESTION: ${currentInput}`;
+        const prompt = `You are a helpful and professional assistant for Donatus Zure's freelance portfolio website, called Prisdon Services. Your name is 'Pris'. Answer questions concisely based ONLY on the context provided below. Do not make up information. If the answer is not in the context, you MUST respond with the exact phrase: "I do not have enough information to answer that question." \n\nCONTEXT: ${siteContext}\n\nUSER'S QUESTION: ${userInput}`;
 
         try {
             const response = await axios.post(
@@ -80,13 +65,12 @@ export default function Chatbot() {
             
             let aiResponse = response.data.candidates[0].content.parts[0].text;
 
+            // This is the NEW fallback logic
             if (aiResponse.includes("I do not have enough information")) {
-                const whatsappUrl = `https://wa.me/${contactInfo?.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hello, I have a question about your services: "${currentInput}"`)}`;
                 aiResponse = {
                     role: 'model',
-                    text: "I'm sorry, I can't answer that question. Would you like to ask Donatus directly on WhatsApp?",
-                    isWhatsappLink: true,
-                    url: whatsappUrl,
+                    text: "I'm sorry, I can't answer that question. Would you like to start a live chat with Donatus right now?",
+                    isLiveChatLink: true,
                 };
             } else {
                 aiResponse = { role: 'model', text: aiResponse };
@@ -98,6 +82,14 @@ export default function Chatbot() {
             setMessages(prev => [...prev, { role: 'model', text: "Sorry, I'm having trouble connecting right now. Please try again later." }]);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleLiveChatClick = () => {
+        // This function opens the Tawk.to widget
+        if (window.Tawk_API && window.Tawk_API.maximize) {
+            window.Tawk_API.maximize();
+            setIsOpen(false); // Close our custom chatbot window
         }
     };
 
@@ -121,10 +113,11 @@ export default function Chatbot() {
                                 <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`p-3 rounded-lg max-w-xs whitespace-pre-wrap ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}>
                                         {msg.text}
-                                        {msg.isWhatsappLink && (
-                                            <a href={msg.url} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600">
-                                                <Icon path={Icons.whatsapp} className="mr-2" /> Chat on WhatsApp
-                                            </a>
+                                        {/* This is the new button for live chat */}
+                                        {msg.isLiveChatLink && (
+                                            <button onClick={handleLiveChatClick} className="mt-2 w-full flex items-center justify-center bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600">
+                                                <Icon path={Icons.liveChat} className="mr-2" /> Start Live Chat
+                                            </button>
                                         )}
                                     </div>
                                 </div>
